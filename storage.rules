@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return request.auth.token.admin == true;
+    }
+    
+    function isImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize() {
+      return request.resource.size <= 5 * 1024 * 1024; // 5MB max
+    }
+    
+    // Property images
+    match /properties/{propertyId}/{allImages=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                  && isAdmin()
+                  && isImageType()
+                  && isValidSize();
+    }
+    
+    // Maintenance images
+    match /maintenance/{taskId}/{allImages=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                  && isImageType()
+                  && isValidSize();
+    }
+  }
+}
